@@ -27,8 +27,23 @@ info:
   contact:
     email: "bros@codebros.cz"
 
-  servers:
-    - url: "https://sub.codebros.cz/api/v1"
-      description: "Dev server"
+servers:
+  - url: "https://sub.codebros.cz/api/v1"
+    description: "Dev server"
 
 paths:
+  /ping:
+    get:
+      summary: "Ping the server"
+      description: "Returns a simple message to verify that the server is running."
+      responses:
+        200:
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "pong"
