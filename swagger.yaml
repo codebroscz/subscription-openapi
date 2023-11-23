@@ -3,12 +3,15 @@ info:
   description: |
     # Documentation for the subscription service API
     
-    ## Glossary
+    ## Domain
     
     ### Subscription plan
     
-    A subscription plan is a set of features that a user can subscribe to. Each subscription plan has a name, a price and a set of features.
+    A subscription plan is a set of features that a user can subscribe to. Each subscription plan has a name, a unique code, a price and a set of features.
+    
     A subscription plan can inherit features from another subscription plan so that the features do not have to be defined multiple times.
+    
+    Price history is kept for each subscription plan. Each price has a start date and an end date. The end date is null if the price is still valid.
     
     ### Feature
     
@@ -18,9 +21,16 @@ info:
     
     A subscription is a record of a user subscribing to a subscription plan. Each subscription has a start date, an end date and a reference to the subscription plan.
     
-    ### User
+    ### Customer
     
-    A user is a person who can subscribe to a subscription plan. 
+    A customer is a person who can subscribe to a subscription plan. 
+    
+    ## Configuration options
+    
+    ### Keep subscription price
+    If a customer prolongs their subscription, the price of the subscription is kept. If the price of the subscription plan has changed, the customer will still pay the old price.
+    
+    If a customer cancels their subscription and then subscribes again, the price of the subscription is not kept. The customer will pay the current price of the subscription plan.
 
   version: "1.0.0"
   title: "Subscription service API"
