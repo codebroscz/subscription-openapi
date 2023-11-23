@@ -201,7 +201,7 @@ components:
           example: "active"
       required:
         - name
-        - code
+        - duration
         - price
         - features
 
