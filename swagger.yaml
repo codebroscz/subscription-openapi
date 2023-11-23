@@ -7,11 +7,61 @@ info:
     
     ### Subscription plan
     
-    A subscription plan is a set of features that a user can subscribe to. Each subscription plan has a name, a unique code, a price and a set of features.
+    A subscription plan is a set of features that a user can subscribe to. Each subscription plan has a name, a price, a duration in days and a set of features.
     
     A subscription plan can inherit features from another subscription plan so that the features do not have to be defined multiple times.
     
     Price history is kept for each subscription plan. Each price has a start date and an end date. The end date is null if the price is still valid.
+    
+    #### Subscription plan status
+    
+    ##### Active subscription plan
+    
+    Active subscription plan is a subscription plan that can be subscribed to. A subscription plan is active if:
+    
+    - The subscription plan does not have a `validFrom` date specified or the `validFrom` date is in the past.
+    - The subscription plan does not have a `validTo` date specified or the `validTo` date is in the future.
+    
+    For active subscription plans, `validTo` can be edited and set into the future.
+    
+    ##### Inactive subscription plan
+    
+    Inactive subscription plan is a subscription plan that cannot be subscribed to. A subscription plan is inactive if:
+    
+    - The subscription plan has a `validFrom` date specified and the `validFrom` date is in the future.
+    - The subscription plan has a `validTo` date specified and the `validTo` date is in the past.
+    
+    For to-be-active subscription plans, the `validFrom` and `validTo` can be edited.
+    For to-be-inactive subscription plans, `validTo` can be edited.
+    For already-inactive subscription plans, no changes can be made. It can be only deleted.
+    
+    ##### Deleted subscription plan
+    
+    - The subscription plan has been deleted manually.
+    
+    No changes can be made to deleted subscription plans.
+    
+    #### Configuration options
+    
+    ##### Keep subscription price
+    If a customer prolongs their subscription, the price of the subscription is kept. If the price of the subscription plan has changed, the customer will still pay the old price.
+    
+    If a customer cancels their subscription and then subscribes again, the price of the subscription is not kept. The customer will pay the current price of the subscription plan.
+    
+    ##### Valid from
+    If set, the subscription plan will be valid from this date. If not set, the subscription plan will be valid as soon as it is created.
+    
+    When creating a new plan, the date must be in the future.
+    
+    ##### Valid to
+    If set, the subscription plan will be valid to this date. If not set, the subscription plan will be valid indefinitely.
+    
+    The date must be in the future. If validFrom is set, the date must be after validFrom.
+    
+    ##### Replaced by
+    If validTo is set and this is set, invalid subscription plan will suggest the (still valid) subscription plan with given ID when customer wants to prolong their subscription.
+    
+    The subscription plan with the given ID must exist. The subscription plan must not be replaced by itself.
     
     ### Feature
     
@@ -21,16 +71,45 @@ info:
     
     A subscription is a record of a user subscribing to a subscription plan. Each subscription has a start date, an end date and a reference to the subscription plan.
     
+    #### Subscription status
+    
+    ##### Requested subscription
+    
+    Requested subscription is a subscription that has been requested by a customer, but has not been confirmed yet. It does not have a start date nor an end date.
+    
+    ##### Active subscription
+    
+    Active subscription is a subscription that is currently active. A subscription is active if:
+    
+    - The subscription `startDate` date is in the past.
+    - The subscription `endDate` date is in the future.
+    
+    ##### Canceled subscription
+    
+    Canceled subscription is a subscription that has been canceled by a customer. Such a subscription is still active until the `endDate` date.
+    
+    ##### Expired subscription
+    
+    Expired subscription is a subscription that has been active or canceled in the past, but is not active anymore.
+    
+    After the subscription expires, it cannot be prolonged anymore. New subscription will be created instead.
+    
+    ##### Revoked subscription
+    
+    Revoked subscription is a subscription that has been revoked by an administrator. Such a subscription is not active anymore.
+    
     ### Customer
     
-    A customer is a person who can subscribe to a subscription plan. 
+    A customer is a person who can subscribe to a subscription plan.
     
-    ## Configuration options
+    ## Table of entity prefixes
     
-    ### Keep subscription price
-    If a customer prolongs their subscription, the price of the subscription is kept. If the price of the subscription plan has changed, the customer will still pay the old price.
-    
-    If a customer cancels their subscription and then subscribes again, the price of the subscription is not kept. The customer will pay the current price of the subscription plan.
+    | Entity prefix | Entity name |
+    | ------------- | ----------- |
+    | sub           | Subscription |
+    | plan          | Subscription plan |
+    | feat          | Feature |
+    | cust          | Customer |
 
   version: "1.0.0"
   title: "Subscription service API"
@@ -57,3 +136,213 @@ paths:
                   message:
                     type: string
                     example: "pong"
+
+components:
+  schemas:
+    Id:
+      description: |
+        Unique identifier in `<entity prefix>_<ksuid>` format.
+        
+        `<entity prefix>` is a prefix that identifies the entity type. For example, `sub` for subscriptions. See full table in the [Domain](#domain) section.
+        
+        `<ksuid>` is a [KSUID](https://github.com/segmentio/ksuid) identifier in base62 format.
+      type: string
+      readOnly: true
+
+    Money:
+      type: object
+      properties:
+        amount:
+          type: string
+          description: Amount of currency in cents, e.g. 1000 means 10.00 EUR
+          example: 1250
+        currency:
+          type: string
+          description: ISO currency format. So far only CZK is supported.
+          example: EUR
+
+    SubscriptionPlan:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/Id"
+        name:
+          type: string
+          example: "Basic"
+        price:
+          $ref: "#/components/schemas/Money"
+        duration:
+          type: integer
+          format: int32
+          description: Duration of the subscription plan in days. If the value is 0, the subscription plan is valid indefinitely. Must not be negative.
+          example:
+            - 30
+            - 365
+        features:
+          type: array
+          items:
+            $ref: "#/components/schemas/Feature"
+        parent:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubscriptionPlan"
+        priceHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubscriptionPlanPrice"
+        options:
+          $ref: "#/components/schemas/SubscriptionPlanOptions"
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+            - deleted
+          example: "active"
+      required:
+        - name
+        - code
+        - price
+        - features
+
+    SubscriptionPlanOptions:
+      type: object
+      properties:
+        keepPrice:
+          type: boolean
+          description: If true, the price of the subscription is kept when the customer prolongs their subscription.
+          example: true
+        validFrom:
+          type: string
+          format: date-time
+          nullable: true
+          description: |
+              If set, the subscription plan will be valid from this date. If not set, the subscription plan will be valid as soon as it is created.
+              
+              When creating a new plan, the date must be in the future.
+          example: "2021-01-01T00:00:00Z"
+        validTo:
+          type: string
+          format: date-time
+          nullable: true
+          description: |
+              If set, the subscription plan will be valid to this date. If not set, the subscription plan will be valid indefinitely.
+              
+              The date must be in the future. If validFrom is set, the date must be after validFrom.
+          example: "2022-01-01T00:00:00Z"
+        replacedBy:
+          type: string
+          nullable: true
+          description: |
+              If validTo is set and this is set, invalid subscription plan will suggest the (still valid) subscription plan with given ID when customer wants to prolong their subscription.
+              
+              The subscription plan with the given ID must exist. The subscription plan must not be replaced by itself.
+          example: "plan_abc123"
+
+    Feature:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/Id"
+        name:
+          type: string
+          example: "Unlimited users"
+        description:
+          type: string
+          nullable: true
+          example: "You can have as many users as you want"
+      required:
+        - id
+        - name
+
+    SubscriptionPlanPrice:
+      type: object
+      properties:
+        price:
+          $ref: "#/components/schemas/Money"
+        startDate:
+          type: string
+          format: date-time
+          example: "2021-01-01T00:00:00Z"
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2021-02-01T00:00:00Z"
+      required:
+        - price
+        - startDate
+        - endDate
+
+    Subscription:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/Id"
+        startDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: |
+              If Subscription is requested, the date is null. Confirmation of the subscription request sets the date.
+          example: "2021-01-01T00:00:00Z"
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: |
+              If Subscription is requested, the date is null. Confirmation of the subscription request sets the date.
+          example: "2021-02-01T00:00:00Z"
+        plan:
+          $ref: "#/components/schemas/SubscriptionPlan"
+        status:
+          type: string
+          enum:
+            - requested
+            - active
+            - canceled
+            - expired
+            - revoked
+          example: "active"
+      required:
+        - id
+        - startDate
+        - endDate
+        - plan
+        - status
+
+    SubscriptionEvent:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/Id"
+        type:
+          type: string
+          enum:
+            - subscription_created
+            - subscription_requested
+            - subscription_confirmed
+            - subscription_canceled
+            - subscription_expired
+            - subscription_revoked
+            - subscription_prolonged
+          example: "subscription_created"
+        subscription:
+          $ref: "#/components/schemas/Id"
+        date:
+          type: string
+          format: date-time
+          description: |
+              Date of the event.
+          example: "2021-01-01T00:00:00Z"
+        detail:
+          type: string
+          nullable: true
+          description: |
+            Description of the event.
+          example: "Subscription created"
+      required:
+        - id
+        - type
+        - date
+        - detail
