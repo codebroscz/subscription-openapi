@@ -183,9 +183,7 @@ components:
           items:
             $ref: "#/components/schemas/Feature"
         parent:
-          type: array
-          items:
-            $ref: "#/components/schemas/SubscriptionPlan"
+          $ref: "#/components/schemas/SubscriptionPlan"
         priceHistory:
           type: array
           items:
