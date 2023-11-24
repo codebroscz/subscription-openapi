@@ -369,6 +369,12 @@ components:
       properties:
         id:
           $ref: "#/components/schemas/Id"
+        externalId:
+          type: string
+          nullable: true
+          description: |
+              ID of the customer in the external system.
+          example: "123"
         name:
           type: string
           example: "John Doe"
@@ -381,6 +387,7 @@ components:
           nullable: true
       required:
         - id
+        - externalId
         - name
         - email
         - subscription
