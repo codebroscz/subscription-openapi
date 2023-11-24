@@ -262,8 +262,6 @@ components:
     Feature:
       type: object
       properties:
-        id:
-          $ref: "#/components/schemas/Id"
         name:
           type: string
           example: "Unlimited users"
@@ -272,7 +270,6 @@ components:
           nullable: true
           example: "You can have as many users as you want"
       required:
-        - id
         - name
 
     SubscriptionPlanPrice:
