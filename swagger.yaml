@@ -139,6 +139,28 @@ paths:
 
 components:
   schemas:
+    Error:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+          description: Unique identification of the error.
+        status:
+          type: integer
+          description: HTTP status code for convenience.
+        code:
+          type: integer
+          description: Numeric code uniquely identifying the error. Note that codes are NOT unique across endpoints.
+          example:
+            - 40001
+        title:
+          type: string
+          description: Message uniquely identifying the error.
+        detail:
+          type: string
+          description: Request specific description of the error.
+
     Id:
       description: |
         Unique identifier in `<entity prefix>_<ksuid>` format.
@@ -344,3 +366,47 @@ components:
         - type
         - date
         - detail
+
+    Customer:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/Id"
+        name:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          example: "doe@example.com"
+        subscription:
+          $ref: "#/components/schemas/Subscription"
+          nullable: true
+      required:
+        - id
+        - name
+        - email
+        - subscription
+
+  responses:
+    ErrorResponse:
+      description: General error response for all endpoints
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: There was an error authenticating a request
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []
