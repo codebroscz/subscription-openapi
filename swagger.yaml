@@ -48,20 +48,32 @@ info:
     
     If a customer cancels their subscription and then subscribes again, the price of the subscription is not kept. The customer will pay the current price of the subscription plan.
     
+    Default value: true
+    
     ##### Valid from
     If set, the subscription plan will be valid from this date. If not set, the subscription plan will be valid as soon as it is created.
     
     When creating a new plan, the date must be in the future.
+    
+    If the subscription plan is already active, the date cannot be changed.
+    
+    Default value: null
     
     ##### Valid to
     If set, the subscription plan will be valid to this date. If not set, the subscription plan will be valid indefinitely.
     
     The date must be in the future. If validFrom is set, the date must be after validFrom.
     
+    If the subscription plan is inactive, the date cannot be changed.
+    
+    Default value: null
+    
     ##### Replaced by
     If validTo is set and this is set, invalid subscription plan will suggest the (still valid) subscription plan with given ID when customer wants to prolong their subscription.
     
     The subscription plan with the given ID must exist. The subscription plan must not be replaced by itself.
+    
+    Default value: null
     
     ### Feature
     
@@ -136,6 +148,212 @@ paths:
                   message:
                     type: string
                     example: "pong"
+
+  /subscription-plans:
+    get:
+      summary: "List Subscription plans"
+      description: "Returns a list of all Subscription plans."
+      responses:
+        200:
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SubscriptionPlan"
+
+    post:
+      summary: "Create a new Subscription plan"
+      description: "Creates a new Subscription plan."
+      requestBody:
+        $ref: "#/components/requestBodies/SubscriptionPlan"
+      responses:
+        201:
+          description: "Created"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionPlan"
+        400:
+          $ref: "#/components/responses/ErrorResponse"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+
+  /subscription-plans/{id}:
+    get:
+      summary: "Get Subscription plan"
+      description: "Returns a Subscription plan with given ID."
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        200:
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionPlan"
+        404:
+          $ref: "#/components/responses/ErrorResponse"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+
+    patch:
+      summary: "Update a Subscription plan"
+      description: |
+        Updates a Subscription plan with given ID.
+        
+        The following fields can be updated:
+        
+        - name
+        - price
+        - duration
+        - features
+        - parent
+        - options
+        
+        Changing a price of a subscription plan will also create a new price history entry.
+        
+        Options `validFrom` and `validTo` can be updated only according to the rules described in the [Domain](#domain) section.
+      requestBody:
+        $ref: "#/components/requestBodies/SubscriptionPlan"
+      responses:
+        200:
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionPlan"
+        400:
+          $ref: "#/components/responses/ErrorResponse"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+
+    delete:
+      summary: "Delete Subscription plan"
+      description: "Deletes a Subscription plan with given ID."
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        204:
+          description: "No content"
+        404:
+          $ref: "#/components/responses/ErrorResponse"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+
+  /subscriptions:
+    get:
+      summary: "List Subscriptions"
+      description: "Returns a list of all Subscriptions."
+      responses:
+        200:
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subscription"
+
+    post:
+      summary: "Create a new Subscription"
+      description: |
+        Creates a new Subscription.
+      requestBody:
+        $ref: "#/components/requestBodies/Subscription"
+      responses:
+        201:
+          description: "Created"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+        400:
+          $ref: "#/components/responses/ErrorResponse"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+
+  /subscriptions/{id}:
+    get:
+      summary: "Get Subscription"
+      description: "Returns a Subscription with given ID."
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        200:
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+        404:
+          $ref: "#/components/responses/ErrorResponse"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+
+  /active-subscriptions/{id}:
+    post:
+        summary: "Activate Subscription"
+        description: |
+          Activates a Subscription with given ID.
+            
+          The Subscription must be in the `requested` state.
+        parameters:
+          - $ref: "#/components/parameters/id"
+        responses:
+          200:
+            description: "OK"
+            content:
+              application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+          400:
+            $ref: "#/components/responses/ErrorResponse"
+          401:
+            $ref: "#/components/responses/Unauthorized"
+
+  /canceled-subscriptions/{id}:
+    post:
+      summary: "Cancel Subscription"
+      description: |
+        Cancels a Subscription with given ID.
+          
+        The Subscription must be in the `active` state.
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        200:
+          description: "OK"
+          content:
+            application/json:
+            schema:
+              $ref: "#/components/schemas/Subscription"
+        400:
+          $ref: "#/components/responses/ErrorResponse"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+
+  /revoked-subscriptions/{id}:
+    post:
+      summary: "Revoke Subscription"
+      description: |
+        Revokes a Subscription with given ID.
+          
+        The Subscription must be in the `requested` or `active` state.
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        200:
+          description: "OK"
+          content:
+            application/json:
+            schema:
+              $ref: "#/components/schemas/Subscription"
+        400:
+          $ref: "#/components/responses/ErrorResponse"
+        401:
+          $ref: "#/components/responses/Unauthorized"
 
 components:
   schemas:
@@ -230,33 +448,42 @@ components:
       properties:
         keepPrice:
           type: boolean
-          description: If true, the price of the subscription is kept when the customer prolongs their subscription.
+          description: |
+            If true, the price of the subscription is kept when the customer prolongs their subscription.
+            
+            Default value: true
           example: true
         validFrom:
           type: string
           format: date-time
           nullable: true
           description: |
-              If set, the subscription plan will be valid from this date. If not set, the subscription plan will be valid as soon as it is created.
+            If set, the subscription plan will be valid from this date. If not set, the subscription plan will be valid as soon as it is created.
               
-              When creating a new plan, the date must be in the future.
+            When creating a new plan, the date must be in the future.
+            
+            Default value: null
           example: "2021-01-01T00:00:00Z"
         validTo:
           type: string
           format: date-time
           nullable: true
           description: |
-              If set, the subscription plan will be valid to this date. If not set, the subscription plan will be valid indefinitely.
+            If set, the subscription plan will be valid to this date. If not set, the subscription plan will be valid indefinitely.
               
-              The date must be in the future. If validFrom is set, the date must be after validFrom.
+            The date must be in the future. If validFrom is set, the date must be after validFrom.
+            
+            Default value: null
           example: "2022-01-01T00:00:00Z"
         replacedBy:
           type: string
           nullable: true
           description: |
-              If validTo is set and this is set, invalid subscription plan will suggest the (still valid) subscription plan with given ID when customer wants to prolong their subscription.
+            If validTo is set and this is set, invalid subscription plan will suggest the (still valid) subscription plan with given ID when customer wants to prolong their subscription.
               
-              The subscription plan with the given ID must exist. The subscription plan must not be replaced by itself.
+            The subscription plan with the given ID must exist. The subscription plan must not be replaced by itself.
+            
+            Default value: null
           example: "plan_abc123"
 
     Feature:
@@ -391,6 +618,79 @@ components:
         - name
         - email
         - subscription
+
+  requestBodies:
+    SubscriptionPlan:
+      description: |
+        Subscription plan to create or to patch.
+      required: true
+      content:
+        application/json:
+          schema:
+            name:
+              type: string
+              example: "Basic"
+            price:
+              $ref: "#/components/schemas/Money"
+            duration:
+              type: integer
+              format: int32
+              description: Duration of the subscription plan in days. If the value is 0, the subscription plan is valid indefinitely. Must not be negative.
+              example:
+                - 30
+                - 365
+            features:
+              type: array
+              items:
+                $ref: "#/components/schemas/Feature"
+              nullable: true
+            parent:
+              $ref: "#/components/schemas/Id"
+            options:
+              $ref: "#/components/schemas/SubscriptionPlanOptions"
+          required:
+            - name
+            - duration
+            - price
+
+    Subscription:
+      description: |
+        Subscription to create.
+      required: true
+      content:
+        application/json:
+          schema:
+            plan:
+              $ref: "#/components/schemas/Id"
+            customer:
+              anyOf:
+                - $ref: "#/components/schemas/Id"
+                - type: object
+                  properties:
+                    externalId:
+                      type: string
+                      nullable: true
+                      description: |
+                          ID of the customer in the external system.
+                      example: "123"
+                    name:
+                      type: string
+                      example: "John Doe"
+                    email:
+                      type: string
+                      format: email
+                      example: "doe@example.com"
+                  required:
+                    - externalId
+                    - name
+                    - email
+
+  parameters:
+    id:
+      name: id
+      in: path
+      schema:
+        $ref: "#/components/schemas/Id"
 
   responses:
     ErrorResponse:
