@@ -44,11 +44,11 @@ info:
     #### Configuration options
     
     ##### Keep subscription price
-    If a customer prolongs their subscription, the price of the subscription is kept. If the price of the subscription plan has changed, the customer will still pay the old price.
+    `keep` - if a customer prolongs their subscription, the price of the subscription is kept. If the price of the subscription plan has changed, the customer will still pay the old price.
     
-    If a customer cancels their subscription and then subscribes again, the price of the subscription is not kept. The customer will pay the current price of the subscription plan.
+    `update` - if a customer cancels their subscription and then subscribes again, the price of the subscription is not kept. The customer will pay the current price of the subscription plan.
     
-    Default value: true
+    Default value: keep
     
     ##### Valid from
     If set, the subscription plan will be valid from this date. If not set, the subscription plan will be valid as soon as it is created.
@@ -447,12 +447,19 @@ components:
       type: object
       properties:
         keepPrice:
-          type: boolean
+          type: string
+          enum:
+            - keep
+            - update
           description: |
-            If true, the price of the subscription is kept when the customer prolongs their subscription.
+            `keep` - the price of the subscription is kept when the customer prolongs their subscription.
+            Current price of the subscription plan is ignored.
             
-            Default value: true
-          example: true
+            `update` - the price of the subscription is updated when the customer prolongs their subscription.
+            Current price of the subscription is used.
+            
+            Default value: keep
+          example: keep
         validFrom:
           type: string
           format: date-time
