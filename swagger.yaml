@@ -214,9 +214,11 @@ paths:
         
         Changing a price of a subscription plan will also create a new price history entry.
         
+        Features are replaced altogether.
+        
         Options `validFrom` and `validTo` can be updated only according to the rules described in the [Domain](#domain) section.
       requestBody:
-        $ref: "#/components/requestBodies/SubscriptionPlan"
+        $ref: "#/components/requestBodies/UpdateSubscriptionPlan"
       responses:
         200:
           description: "OK"
@@ -634,31 +636,64 @@ components:
       content:
         application/json:
           schema:
-            name:
-              type: string
-              example: "Basic"
-            price:
-              $ref: "#/components/schemas/Money"
-            duration:
-              type: integer
-              format: int32
-              description: Duration of the subscription plan in days. If the value is 0, the subscription plan is valid indefinitely. Must not be negative.
-              example:
-                - 30
-                - 365
-            features:
-              type: array
-              items:
-                $ref: "#/components/schemas/Feature"
-              nullable: true
-            parent:
-              $ref: "#/components/schemas/Id"
-            options:
-              $ref: "#/components/schemas/SubscriptionPlanOptions"
-          required:
-            - name
-            - duration
-            - price
+            type: object
+            properties:
+              name:
+                type: string
+                example: "Basic"
+              price:
+                $ref: "#/components/schemas/Money"
+              duration:
+                type: integer
+                format: int32
+                description: Duration of the subscription plan in days. If the value is 0, the subscription plan is valid indefinitely. Must not be negative.
+                example:
+                  - 30
+                  - 365
+              features:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Feature"
+                nullable: true
+              parent:
+                $ref: "#/components/schemas/Id"
+              options:
+                $ref: "#/components/schemas/SubscriptionPlanOptions"
+            required:
+              - name
+              - duration
+              - price
+
+    UpdateSubscriptionPlan:
+      description: |
+        Subscription plan to create or to patch.
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+                example: "Basic"
+              price:
+                $ref: "#/components/schemas/Money"
+              duration:
+                type: integer
+                format: int32
+                description: Duration of the subscription plan in days. If the value is 0, the subscription plan is valid indefinitely. Must not be negative.
+                example:
+                  - 30
+                  - 365
+              features:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Feature"
+                nullable: true
+              parent:
+                $ref: "#/components/schemas/Id"
+              options:
+                $ref: "#/components/schemas/SubscriptionPlanOptions"
 
     Subscription:
       description: |
@@ -667,30 +702,35 @@ components:
       content:
         application/json:
           schema:
-            plan:
-              $ref: "#/components/schemas/Id"
-            customer:
-              anyOf:
-                - $ref: "#/components/schemas/Id"
-                - type: object
-                  properties:
-                    externalId:
-                      type: string
-                      nullable: true
-                      description: |
+            type: object
+            properties:
+              plan:
+                $ref: "#/components/schemas/Id"
+              customer:
+                anyOf:
+                  - $ref: "#/components/schemas/Id"
+                  - type: object
+                    properties:
+                      externalId:
+                        type: string
+                        nullable: true
+                        description: |
                           ID of the customer in the external system.
-                      example: "123"
-                    name:
-                      type: string
-                      example: "John Doe"
-                    email:
-                      type: string
-                      format: email
-                      example: "doe@example.com"
-                  required:
-                    - externalId
-                    - name
-                    - email
+                        example: "123"
+                      name:
+                        type: string
+                        example: "John Doe"
+                      email:
+                        type: string
+                        format: email
+                        example: "doe@example.com"
+                    required:
+                      - externalId
+                      - name
+                      - email
+            required:
+              - plan
+              - customer
 
   parameters:
     id:
