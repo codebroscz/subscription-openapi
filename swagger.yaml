@@ -306,8 +306,8 @@ paths:
             description: "OK"
             content:
               application/json:
-              schema:
-                $ref: "#/components/schemas/Subscription"
+                schema:
+                  $ref: "#/components/schemas/Subscription"
           400:
             $ref: "#/components/responses/ErrorResponse"
           401:
@@ -327,8 +327,8 @@ paths:
           description: "OK"
           content:
             application/json:
-            schema:
-              $ref: "#/components/schemas/Subscription"
+              schema:
+                $ref: "#/components/schemas/Subscription"
         400:
           $ref: "#/components/responses/ErrorResponse"
         401:
@@ -348,8 +348,8 @@ paths:
           description: "OK"
           content:
             application/json:
-            schema:
-              $ref: "#/components/schemas/Subscription"
+              schema:
+                $ref: "#/components/schemas/Subscription"
         400:
           $ref: "#/components/responses/ErrorResponse"
         401:
