@@ -736,6 +736,7 @@ components:
     id:
       name: id
       in: path
+      required: true
       schema:
         $ref: "#/components/schemas/Id"
 
