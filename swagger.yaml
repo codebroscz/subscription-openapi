@@ -705,7 +705,7 @@ components:
             type: object
             properties:
               plan:
-                $ref: "#/components/schemas/Id"
+                - $ref: "#/components/schemas/Id"
               customer:
                 anyOf:
                   - $ref: "#/components/schemas/Id"
