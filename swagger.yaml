@@ -46,7 +46,7 @@ info:
     ##### Keep subscription price
     `keep` - if a customer prolongs their subscription, the price of the subscription is kept. If the price of the subscription plan has changed, the customer will still pay the old price.
     
-    `update` - if a customer cancels their subscription and then subscribes again, the price of the subscription is not kept. The customer will pay the current price of the subscription plan.
+    `update` - if a customer prolongs their subscription, the price of the subscription is not kept. The customer will pay the current price of the subscription plan.
     
     Default value: keep
     
@@ -96,13 +96,9 @@ info:
     - The subscription `startDate` date is in the past.
     - The subscription `endDate` date is in the future.
     
-    ##### Canceled subscription
-    
-    Canceled subscription is a subscription that has been canceled by a customer. Such a subscription is still active until the `endDate` date.
-    
     ##### Expired subscription
     
-    Expired subscription is a subscription that has been active or canceled in the past, but is not active anymore.
+    Expired subscription is a subscription that has been active in the past, but is not active anymore.
     
     After the subscription expires, it cannot be prolonged anymore. New subscription will be created instead.
     
@@ -314,27 +310,6 @@ paths:
             $ref: "#/components/responses/ErrorResponse"
           401:
             $ref: "#/components/responses/Unauthorized"
-
-  /canceled-subscriptions/{id}:
-    post:
-      summary: "Cancel Subscription"
-      description: |
-        Cancels a Subscription with given ID.
-          
-        The Subscription must be in the `active` state.
-      parameters:
-        - $ref: "#/components/parameters/id"
-      responses:
-        200:
-          description: "OK"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Subscription"
-        400:
-          $ref: "#/components/responses/ErrorResponse"
-        401:
-          $ref: "#/components/responses/Unauthorized"
 
   /revoked-subscriptions/{id}:
     post:
@@ -553,7 +528,6 @@ components:
           enum:
             - requested
             - active
-            - canceled
             - expired
             - revoked
           example: "active"
@@ -575,7 +549,6 @@ components:
             - subscription_created
             - subscription_requested
             - subscription_confirmed
-            - subscription_canceled
             - subscription_expired
             - subscription_revoked
             - subscription_prolonged
