@@ -688,15 +688,11 @@ components:
           type: string
           format: email
           example: "doe@example.com"
-        subscription:
-          $ref: "#/components/schemas/Subscription"
-          nullable: true
       required:
         - id
         - externalId
         - name
         - email
-        - subscription
 
   requestBodies:
     SubscriptionPlan:
