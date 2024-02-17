@@ -620,6 +620,8 @@ components:
           example: "2021-02-01T00:00:00Z"
         plan:
           $ref: "#/components/schemas/SubscriptionPlan"
+        customer:
+          $ref: "#/components/schemas/Customer"
         status:
           type: string
           enum:
