@@ -227,12 +227,7 @@ paths:
       summary: "Get Subscription plan"
       description: "Returns a Subscription plan with given ID."
       parameters:
-        -
-          name: id
-          in: path
-          required: true
-          schema:
-            $ref: "#/components/parameters/id"
+        - $ref: "#/components/parameters/id"
       responses:
         200:
           description: "OK"
@@ -264,6 +259,8 @@ paths:
         Features are replaced altogether.
         
         Options `validFrom` and `validTo` can be updated only according to the rules described in the [Domain](#domain) section.
+      parameters:
+        - $ref: "#/components/parameters/id"
       requestBody:
         $ref: "#/components/requestBodies/UpdateSubscriptionPlan"
       responses:
@@ -441,28 +438,29 @@ paths:
         content:
           application/json:
             schema:
-            type: object
-            properties:
-              firstReminder:
-                type: integer
-                example: 7
-              secondReminder:
-                type: integer
-                example: 3
-    responses:
-        200:
-        description: "OK"
-        content:
-          application/json:
-            schema:
               type: object
               properties:
-              firstReminder:
-                type: integer
-                example: 7
-              secondReminder:
-                type: integer
-                example: 3
+                firstReminder:
+                  type: integer
+                  example: 7
+                secondReminder:
+                  type: integer
+                  example: 3
+
+      responses:
+        200:
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  firstReminder:
+                    type: integer
+                    example: 7
+                  secondReminder:
+                    type: integer
+                    example: 3
         400:
           $ref: "#/components/responses/ErrorResponse"
 
@@ -475,14 +473,14 @@ paths:
         content:
           application/json:
             schema:
-            type: object
-            properties:
-              username:
-                type: string
-                example: "user"
-              password:
-                type: string
-                example: "pass"
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: "user"
+                password:
+                  type: string
+                  example: "pass"
       responses:
         200:
           description: "OK"
@@ -843,7 +841,7 @@ components:
             type: object
             properties:
               plan:
-                - $ref: "#/components/schemas/Id"
+                $ref: "#/components/schemas/Id"
               customer:
                 anyOf:
                   - $ref: "#/components/schemas/Id"
@@ -876,7 +874,15 @@ components:
       in: path
       required: true
       schema:
-        $ref: "#/components/schemas/Id"
+        description: |
+          Unique identifier in `<entity prefix>_<ksuid>` format.
+
+          `<entity prefix>` is a prefix that identifies the entity type. For example, `sub` for subscriptions. See full table in the [Domain](#domain) section.
+
+          `<ksuid>` is a [KSUID](https://github.com/segmentio/ksuid) identifier in base62 format.
+        type: string
+        readOnly: true
+#        $ref: "#/components/schemas/Id"
 
   responses:
     ErrorResponse:
