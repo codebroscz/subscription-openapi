@@ -110,6 +110,20 @@ info:
     
     A customer is a person who can subscribe to a subscription plan.
     
+    ### Settings
+    
+    Settings are a general set of configuration options for the subscription service.
+    
+    #### First reminder X days before the end of the subscription
+    
+    How many days before the end of the subscription the first reminder should be sent.
+    If set value is same or greater than duration of the subscription plan, no reminders are sent.
+    
+    #### Second reminder Y days before the end of the subscription
+    
+    How many days before the end of the subscription the second reminder should be sent.
+    If set value is same or greater than duration of the subscription plan, no reminders are sent.
+    
     ## Workflow cases
     
     ### Creating a subscription
@@ -149,6 +163,7 @@ info:
     | sub           | Subscription |
     | plan          | Subscription plan |
     | cust          | Customer |
+    | rem           | Expiration reminder |
 
   version: "1.0.0"
   title: "Subscription service API"
@@ -212,7 +227,12 @@ paths:
       summary: "Get Subscription plan"
       description: "Returns a Subscription plan with given ID."
       parameters:
-        - $ref: "#/components/parameters/id"
+        -
+          name: id
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/parameters/id"
       responses:
         200:
           description: "OK"
@@ -394,6 +414,56 @@ paths:
         404:
           $ref: "#/components/responses/ErrorResponse"
         409:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /settings:
+    get:
+      summary: "Get settings"
+      description: "Returns a list of all settings."
+      responses:
+        200:
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  firstReminder:
+                    type: integer
+                    example: 7
+                  secondReminder:
+                    type: integer
+                    example: 3
+    post:
+      summary: "Update settings"
+      description: "Updates the settings."
+      requestBody:
+        content:
+          application/json:
+            schema:
+            type: object
+            properties:
+              firstReminder:
+                type: integer
+                example: 7
+              secondReminder:
+                type: integer
+                example: 3
+    responses:
+        200:
+        description: "OK"
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+              firstReminder:
+                type: integer
+                example: 7
+              secondReminder:
+                type: integer
+                example: 3
+        400:
           $ref: "#/components/responses/ErrorResponse"
 
   /auth/token:
