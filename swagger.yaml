@@ -89,6 +89,10 @@ info:
     
     Requested subscription is a subscription that has been requested by a customer, but has not been confirmed yet. It does not have a start date nor an end date.
     
+    ##### Scheduled subscription
+    
+    Scheduled subscription is a subscription with a custom timeframe whose start date is in the future. It has start and end dates set, but is not active yet. A scheduled subscription is automatically activated when its start date arrives.
+    
     ##### Active subscription
     
     Active subscription is a subscription that is currently active. A subscription is active if:
@@ -131,10 +135,18 @@ info:
     - Check if the subscription plan is active.
     - Check if the customer has a requested subscription.
       - Request for a different subscription plan is revoked.
-      - Request for the same subscription plan is returned.
+      - Request for the same subscription plan is returned (unless custom dates are provided).
     - Check if the customer has an active subscription.
       - If active subscription has the same subscription plan, error is returned.
-    - Create a new subscription in *requested* state.
+    - If optional `startDate` and/or `endDate` are provided:
+      - Missing `startDate` defaults to now.
+      - Missing `endDate` defaults to `startDate + plan.duration` days.
+      - `endDate` must be strictly after `startDate`.
+      - Status is derived from the current time vs the timeframe:
+        - `scheduled` if start date is in the future
+        - `active` if now is within [startDate, endDate]
+        - `expired` if end date is in the past
+    - Otherwise, create a new subscription in *requested* state.
     
     ### Activating a subscription
     
@@ -694,6 +706,7 @@ components:
           type: string
           enum:
             - requested
+            - scheduled
             - active
             - expired
             - revoked
@@ -834,6 +847,12 @@ components:
     Subscription:
       description: |
         Subscription to create.
+        
+        Optional `startDate` and/or `endDate` allow creating subscriptions with custom timeframes (e.g. promotions, customer care apologies). If at least one is provided, the subscription is created directly with dates and an appropriate status (`scheduled`, `active`, or `expired`) instead of the default `requested` state.
+        
+        - If only `startDate` is provided, `endDate` defaults to `startDate + plan.duration` days.
+        - If only `endDate` is provided, `startDate` defaults to now.
+        - `endDate` must be strictly after `startDate`.
       required: true
       content:
         application/json:
@@ -864,6 +883,22 @@ components:
                       - externalId
                       - name
                       - email
+              startDate:
+                type: string
+                format: date-time
+                nullable: true
+                description: |
+                  Custom start date. If omitted while `endDate` is provided, defaults to now.
+                  When provided (alone or with `endDate`), the subscription is created with a custom timeframe.
+                example: "2021-01-01T00:00:00Z"
+              endDate:
+                type: string
+                format: date-time
+                nullable: true
+                description: |
+                  Custom end date. Must be strictly after `startDate`.
+                  If omitted while `startDate` is provided, defaults to `startDate + plan.duration` days.
+                example: "2021-02-01T00:00:00Z"
             required:
               - plan
               - customer
