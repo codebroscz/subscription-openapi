@@ -47,7 +47,9 @@ info:
     `keep` - if a customer prolongs their subscription, the price of the subscription is kept. If the price of the subscription plan has changed, the customer will still pay the old price.
     
     `update` - if a customer prolongs their subscription, the price of the subscription is not kept. The customer will pay the current price of the subscription plan.
-    
+
+    Note: per-subscription custom prices set at creation (e.g. retention offers) do not survive prolongation — prolong always sets the subscription price to the current plan price, regardless of this option.
+
     Default value: keep
     
     ##### Valid from
@@ -81,17 +83,22 @@ info:
     
     ### Subscription
     
-    A subscription is a record of a user subscribing to a subscription plan. Each subscription has a start date, an end date and a reference to the subscription plan.
+    A subscription is a record of a user subscribing to a subscription plan. Each subscription has a start date, an end date, an effective price and a reference to the subscription plan.
+
+    The effective price is set at creation time. If no custom price is provided, the current price of the subscription plan is used. When a subscription is prolonged, its effective price is always reset to the current price of the subscription plan (custom create prices do not carry over).
     
     #### Subscription status
     
     ##### Requested subscription
-    
-    Requested subscription is a subscription that has been requested by a customer, but has not been confirmed yet. It does not have a start date nor an end date.
-    
+
+    Requested subscription is a subscription that has been requested by a customer, but has not been confirmed yet.
+    Without custom dates it has no start or end date. With custom dates and a non-zero price it may already store
+    the intended timeframe while awaiting payment confirmation.
+
     ##### Scheduled subscription
-    
-    Scheduled subscription is a subscription with a custom timeframe whose start date is in the future. It has start and end dates set, but is not active yet. A scheduled subscription is automatically activated when its start date arrives.
+
+    Scheduled subscription has start and end dates set, but is not active yet (start date is in the future).
+    A scheduled subscription is automatically activated when its start date arrives.
     
     ##### Active subscription
     
@@ -142,19 +149,23 @@ info:
       - Missing `startDate` defaults to now.
       - Missing `endDate` defaults to `startDate + plan.duration` days.
       - `endDate` must be strictly after `startDate`.
-      - Status is derived from the current time vs the timeframe:
-        - `scheduled` if start date is in the future
-        - `active` if now is within [startDate, endDate]
-        - `expired` if end date is in the past
-    - Otherwise, create a new subscription in *requested* state.
-    
+      - Effective price is the request `price` if provided, otherwise the plan price.
+      - If effective price is non-zero: `status` is required and must be one of `requested`, `scheduled`, or `active`.
+        - `requested` — store dates, await payment/notify flow.
+        - `scheduled` — requires `startDate` in the future.
+        - `active` — requires `startDate` ≤ now and `endDate` > now (skips the schedule cycle).
+      - If effective price is zero: `status` must be omitted; status is derived (`scheduled` if start > now, else `active`). Creating with `endDate` in the past is rejected.
+    - If no custom dates are provided: create in *requested* state. `status` must not be sent.
+
     ### Activating a subscription
-    
+
     - Check if the subscription plan is active.
     - Check if the subscription is requested.
     - Check if the customer has an active subscription.
       - If so, apply provided switch method.
-    - Activate the subscription otherwise.
+    - If the subscription already has a stored custom timeframe, activate using those dates
+      (`scheduled` if start is still in the future, otherwise `active`).
+    - Otherwise activate using the plan duration from the activation time.
     
     ### Prolonging a subscription
     
@@ -708,19 +719,23 @@ components:
           format: date-time
           nullable: true
           description: |
-              If Subscription is requested, the date is null. Confirmation of the subscription request sets the date.
+              Null for a plain requested subscription (no custom timeframe). May be set when a requested
+              subscription was created with custom dates awaiting payment confirmation.
           example: "2021-01-01T00:00:00Z"
         endDate:
           type: string
           format: date-time
           nullable: true
           description: |
-              If Subscription is requested, the date is null. Confirmation of the subscription request sets the date.
+              Null for a plain requested subscription (no custom timeframe). May be set when a requested
+              subscription was created with custom dates awaiting payment confirmation.
           example: "2021-02-01T00:00:00Z"
         plan:
           $ref: "#/components/schemas/SubscriptionPlan"
         customer:
           $ref: "#/components/schemas/Customer"
+        price:
+          $ref: "#/components/schemas/Money"
         status:
           type: string
           enum:
@@ -735,6 +750,7 @@ components:
         - startDate
         - endDate
         - plan
+        - price
         - status
 
     SubscriptionEvent:
@@ -866,12 +882,22 @@ components:
     Subscription:
       description: |
         Subscription to create.
-        
-        Optional `startDate` and/or `endDate` allow creating subscriptions with custom timeframes (e.g. promotions, customer care apologies). If at least one is provided, the subscription is created directly with dates and an appropriate status (`scheduled`, `active`, or `expired`) instead of the default `requested` state.
-        
+
+        Optional `startDate` and/or `endDate` allow creating subscriptions with custom timeframes
+        (e.g. promotions, customer care apologies, retention offers).
+
         - If only `startDate` is provided, `endDate` defaults to `startDate + plan.duration` days.
         - If only `endDate` is provided, `startDate` defaults to now.
         - `endDate` must be strictly after `startDate`.
+
+        `status` is required only when custom dates are provided and the effective price is non-zero
+        (request `price`, or plan price if `price` is omitted). Allowed values: `requested`, `scheduled`, `active`.
+        Without custom dates, omit `status` (defaults to `requested`). With custom dates and zero effective price,
+        omit `status` (derived as `scheduled` or `active` from the dates).
+
+        Optional `price` allows setting a custom effective price. If omitted, the current price of the subscription
+        plan is used. Currency must match the plan. Amount must be zero or greater. On prolongation, the subscription
+        price is reset to the current plan price.
       required: true
       content:
         application/json:
@@ -918,6 +944,21 @@ components:
                   Custom end date. Must be strictly after `startDate`.
                   If omitted while `startDate` is provided, defaults to `startDate + plan.duration` days.
                 example: "2021-02-01T00:00:00Z"
+              price:
+                $ref: "#/components/schemas/Money"
+              status:
+                type: string
+                enum:
+                  - requested
+                  - scheduled
+                  - active
+                description: |
+                  Required when custom dates and a non-zero effective price are provided.
+                  Must be omitted otherwise.
+                  - `requested` — store dates and keep payment/notify flow.
+                  - `scheduled` — startDate must be in the future.
+                  - `active` — startDate must be ≤ now and endDate > now (skips schedule cycle).
+                example: requested
             required:
               - plan
               - customer
