@@ -2,93 +2,97 @@ openapi: "3.1.0"
 info:
   description: |
     # Documentation for the subscription service API
-    
+
     ## Domain
-    
+
     ### Subscription plan
-    
-    A subscription plan is a set of features that a user can subscribe to. Each subscription plan has a name, a price, a duration in days and a set of features.
-    
+
+    A subscription plan is a set of features that a user can subscribe to. Each subscription plan has a name, a price (excluding tax), an optional VAT rate, a duration in days and a set of features.
+
+    Prices are stored excluding tax. `vatRate` is a percentage number (e.g. `21` for 21%). When `vatRate` is null, the plan is treated as a non-VAT payer.
+
     A subscription plan can inherit features from another subscription plan so that the features do not have to be defined multiple times.
-    
+
     Price history is kept for each subscription plan. Each price has a start date and an end date. The end date is null if the price is still valid.
-    
+
     #### Subscription plan status
-    
+
     ##### Active subscription plan
-    
+
     Active subscription plan is a subscription plan that can be subscribed to. A subscription plan is active if:
-    
+
     - The subscription plan does not have a `validFrom` date specified or the `validFrom` date is in the past.
     - The subscription plan does not have a `validTo` date specified or the `validTo` date is in the future.
-    
+
     For active subscription plans, `validTo` can be edited and set into the future.
-    
+
     ##### Inactive subscription plan
-    
+
     Inactive subscription plan is a subscription plan that cannot be subscribed to. A subscription plan is inactive if:
-    
+
     - The subscription plan has a `validFrom` date specified and the `validFrom` date is in the future.
     - The subscription plan has a `validTo` date specified and the `validTo` date is in the past.
-    
+
     For to-be-active subscription plans, the `validFrom` and `validTo` can be edited.
     For to-be-inactive subscription plans, `validTo` can be edited.
     For already-inactive subscription plans, no changes can be made. It can be only deleted.
-    
+
     ##### Deleted subscription plan
-    
+
     - The subscription plan has been deleted manually.
-    
+
     No changes can be made to deleted subscription plans.
-    
+
     #### Configuration options
-    
+
     ##### Keep subscription price
     `keep` - if a customer prolongs their subscription, the price of the subscription is kept. If the price of the subscription plan has changed, the customer will still pay the old price.
-    
+
     `update` - if a customer prolongs their subscription, the price of the subscription is not kept. The customer will pay the current price of the subscription plan.
 
     Note: per-subscription custom prices set at creation (e.g. retention offers) do not survive prolongation — prolong always sets the subscription price to the current plan price, regardless of this option.
 
     Default value: keep
-    
+
     ##### Valid from
     If set, the subscription plan will be valid from this date. If not set, the subscription plan will be valid as soon as it is created.
-    
+
     When creating a new plan, the date must be in the future.
-    
+
     If the subscription plan is already active, the date cannot be changed.
-    
+
     Default value: null
-    
+
     ##### Valid to
     If set, the subscription plan will be valid to this date. If not set, the subscription plan will be valid indefinitely.
-    
+
     The date must be in the future. If validFrom is set, the date must be after validFrom.
-    
+
     If the subscription plan is inactive, the date cannot be changed.
-    
+
     Default value: null
-    
+
     ##### Replaced by
     If validTo is set and this is set, invalid subscription plan will suggest the (still valid) subscription plan with given ID when customer wants to prolong their subscription.
-    
+
     The subscription plan with the given ID must exist. The subscription plan must not be replaced by itself.
-    
+
     Default value: null
-    
+
     ### Feature
-    
+
     A feature is a part of a subscription plan. Each feature has a name and a description.
-    
+
     ### Subscription
-    
-    A subscription is a record of a user subscribing to a subscription plan. Each subscription has a start date, an end date, an effective price and a reference to the subscription plan.
+
+    A subscription is a record of a user subscribing to a subscription plan. Each subscription has a start date, an end date, an effective price (excluding tax), an effective VAT rate and a reference to the subscription plan.
 
     The effective price is set at creation time. If no custom price is provided, the current price of the subscription plan is used. When a subscription is prolonged, its effective price is always reset to the current price of the subscription plan (custom create prices do not carry over).
-    
+
+    The effective VAT rate is always taken from the subscription plan at creation and on prolongation. It cannot be set independently on create.
+
     #### Subscription status
-    
+
     ##### Requested subscription
 
     Requested subscription is a subscription that has been requested by a customer, but has not been confirmed yet.
@@ -99,46 +103,46 @@ info:
 
     Scheduled subscription has start and end dates set, but is not active yet (start date is in the future).
     A scheduled subscription is automatically activated when its start date arrives.
-    
+
     ##### Active subscription
-    
+
     Active subscription is a subscription that is currently active. A subscription is active if:
-    
+
     - The subscription `startDate` date is in the past.
     - The subscription `endDate` date is in the future.
-    
+
     ##### Expired subscription
-    
+
     Expired subscription is a subscription that has been active in the past, but is not active anymore.
-    
+
     After the subscription expires, it cannot be prolonged anymore. New subscription will be created instead.
-    
+
     ##### Revoked subscription
-    
+
     Revoked subscription is a subscription that has been revoked by an administrator. Such a subscription is not active anymore.
-    
+
     ### Customer
-    
+
     A customer is a person who can subscribe to a subscription plan.
-    
+
     ### Settings
-    
+
     Settings are a general set of configuration options for the subscription service.
-    
+
     #### First reminder X days before the end of the subscription
-    
+
     How many days before the end of the subscription the first reminder should be sent.
     If set value is same or greater than duration of the subscription plan, no reminders are sent.
-    
+
     #### Second reminder Y days before the end of the subscription
-    
+
     How many days before the end of the subscription the second reminder should be sent.
     If set value is same or greater than duration of the subscription plan, no reminders are sent.
-    
+
     ## Workflow cases
-    
+
     ### Creating a subscription
-    
+
     - Check if the subscription plan is active.
     - Check if the customer has a requested subscription.
       - Request for a different subscription plan is revoked.
@@ -166,21 +170,21 @@ info:
     - If the subscription already has a stored custom timeframe, activate using those dates
       (`scheduled` if start is still in the future, otherwise `active`).
     - Otherwise activate using the plan duration from the activation time.
-    
+
     ### Prolonging a subscription
-    
+
     - Prolonging can be done even if the subscription plan is not active, but it must not be deleted.
     - Check if the provided subscription is active.
       - If the subscription is expired, error is returned. It is up to the implementer to decide whether to create new subscription and activate it instead.
     - Prolong the subscription for the duration of the subscription plan otherwise.
-    
+
     ### Revoking a subscription
-    
+
     - Check if the subscription is active, other states return error.
     - Revoke the subscription. Validity of the subscription is changed to current date.
-    
+
     ## Table of entity prefixes
-    
+
     | Entity prefix | Entity name |
     | ------------- | ----------- |
     | sub           | Subscription |
@@ -202,6 +206,7 @@ paths:
     get:
       summary: "Ping the server"
       description: "Returns a simple message to verify that the server is running."
+      security: []
       responses:
         200:
           description: "OK"
@@ -213,6 +218,98 @@ paths:
                   message:
                     type: string
                     example: "pong"
+
+  /customers:
+    get:
+      summary: "List customers"
+      description: "Returns a list of all customers."
+      responses:
+        200:
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Customer"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+
+    post:
+      summary: "Create a customer"
+      description: "Creates a new customer."
+      requestBody:
+        $ref: "#/components/requestBodies/Customer"
+      responses:
+        201:
+          description: "Created"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        400:
+          $ref: "#/components/responses/ErrorResponse"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        409:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /customers/{id}:
+    get:
+      summary: "Get customer"
+      description: "Returns a customer with given ID."
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        200:
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        400:
+          $ref: "#/components/responses/ErrorResponse"
+        404:
+          $ref: "#/components/responses/ErrorResponse"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+
+    patch:
+      summary: "Update a customer"
+      description: "Updates a customer with given ID."
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        $ref: "#/components/requestBodies/UpdateCustomer"
+      responses:
+        200:
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        400:
+          $ref: "#/components/responses/ErrorResponse"
+        404:
+          $ref: "#/components/responses/ErrorResponse"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        409:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /stats:
+    get:
+      summary: "Get dashboard stats"
+      description: "Returns aggregate counts for customers, plans, and subscriptions."
+      responses:
+        200:
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stats"
+        401:
+          $ref: "#/components/responses/Unauthorized"
 
   /subscription-plans:
     get:
@@ -267,20 +364,20 @@ paths:
       summary: "Update a Subscription plan"
       description: |
         Updates a Subscription plan with given ID.
-        
+
         The following fields can be updated:
-        
+
         - name
         - price
         - duration
         - features
         - parent
         - options
-        
+
         Changing a price of a subscription plan will also create a new price history entry.
-        
+
         Features are replaced altogether.
-        
+
         Options `validFrom` and `validTo` can be updated only according to the rules described in the [Domain](#domain) section.
       parameters:
         - $ref: "#/components/parameters/id"
@@ -319,6 +416,12 @@ paths:
         - name: externalCustomerId
           in: query
           description: "Filter subscriptions by external customer ID."
+          required: false
+          schema:
+            type: string
+        - name: customerId
+          in: query
+          description: "Filter subscriptions by customer ID."
           required: false
           schema:
             type: string
@@ -385,7 +488,7 @@ paths:
         summary: "Activate Subscription"
         description: |
           Activates a Subscription with given ID.
-            
+
           The Subscription must be in the `requested` state.
         parameters:
           - $ref: "#/components/parameters/id"
@@ -410,7 +513,7 @@ paths:
       summary: "Revoke Subscription"
       description: |
         Revokes a Subscription with given ID.
-          
+
         The Subscription must be in the `requested` or `active` state.
       parameters:
         - $ref: "#/components/parameters/id"
@@ -435,7 +538,7 @@ paths:
       summary: "Prolong Subscription"
       description: |
         Prolongs a Subscription with given ID.
-          
+
         The Subscription must be in the `active` state.
       parameters:
         - $ref: "#/components/parameters/id"
@@ -511,6 +614,7 @@ paths:
       summary: "Get JWT token"
       description: |
         Returns a JWT token for the given credentials.
+      security: []
       requestBody:
         content:
           application/json:
@@ -534,6 +638,9 @@ paths:
                   token:
                     type: string
                     example: "eyJhbGciOiJIUzI1Ni"
+                  expires:
+                    type: string
+                    example: "2026-08-26 09:00:00"
         400:
           $ref: "#/components/responses/ErrorResponse"
         401:
@@ -566,19 +673,20 @@ components:
     Id:
       description: |
         Unique identifier in `<entity prefix>_<ksuid>` format.
-        
+
         `<entity prefix>` is a prefix that identifies the entity type. For example, `sub` for subscriptions. See full table in the [Domain](#domain) section.
-        
+
         `<ksuid>` is a [KSUID](https://github.com/segmentio/ksuid) identifier in base62 format.
       type: string
       readOnly: true
 
     Money:
       type: object
+      description: Amount excluding tax.
       properties:
         amount:
           type: string
-          description: Amount of currency in cents, e.g. 1000 means 10.00 EUR
+          description: Amount of currency in cents excluding tax, e.g. 1000 means 10.00 EUR
           example: 1250
         currency:
           type: string
@@ -595,6 +703,11 @@ components:
           example: "Basic"
         price:
           $ref: "#/components/schemas/Money"
+        vatRate:
+          type: number
+          nullable: true
+          description: VAT rate in percentage points (e.g. 21 for 21%). Null means non-VAT payer.
+          example: 21
         duration:
           type: integer
           format: int32
@@ -626,6 +739,7 @@ components:
         - duration
         - price
         - features
+        - vatRate
 
     SubscriptionPlanOptions:
       type: object
@@ -638,10 +752,10 @@ components:
           description: |
             `keep` - the price of the subscription is kept when the customer prolongs their subscription.
             Current price of the subscription plan is ignored.
-            
+
             `update` - the price of the subscription is updated when the customer prolongs their subscription.
             Current price of the subscription is used.
-            
+
             Default value: keep
           example: keep
         validFrom:
@@ -650,9 +764,9 @@ components:
           nullable: true
           description: |
             If set, the subscription plan will be valid from this date. If not set, the subscription plan will be valid as soon as it is created.
-              
+
             When creating a new plan, the date must be in the future.
-            
+
             Default value: null
           example: "2021-01-01T00:00:00Z"
         validTo:
@@ -661,9 +775,9 @@ components:
           nullable: true
           description: |
             If set, the subscription plan will be valid to this date. If not set, the subscription plan will be valid indefinitely.
-              
+
             The date must be in the future. If validFrom is set, the date must be after validFrom.
-            
+
             Default value: null
           example: "2022-01-01T00:00:00Z"
         replacedBy:
@@ -671,9 +785,9 @@ components:
           nullable: true
           description: |
             If validTo is set and this is set, invalid subscription plan will suggest the (still valid) subscription plan with given ID when customer wants to prolong their subscription.
-              
+
             The subscription plan with the given ID must exist. The subscription plan must not be replaced by itself.
-            
+
             Default value: null
           example: "plan_abc123"
 
@@ -736,6 +850,11 @@ components:
           $ref: "#/components/schemas/Customer"
         price:
           $ref: "#/components/schemas/Money"
+        vatRate:
+          type: number
+          nullable: true
+          description: VAT rate in percentage points (e.g. 21 for 21%). Null means non-VAT payer. Snapshot from the plan at create and on prolongation.
+          example: 21
         status:
           type: string
           enum:
@@ -751,6 +870,7 @@ components:
         - endDate
         - plan
         - price
+        - vatRate
         - status
 
     SubscriptionEvent:
@@ -812,7 +932,93 @@ components:
         - name
         - email
 
+    Stats:
+      type: object
+      properties:
+        customers:
+          type: object
+          properties:
+            total:
+              type: integer
+              example: 42
+        plans:
+          type: object
+          properties:
+            total:
+              type: integer
+              example: 5
+            active:
+              type: integer
+              example: 3
+            inactive:
+              type: integer
+              example: 1
+            deleted:
+              type: integer
+              example: 1
+        subscriptions:
+          type: object
+          properties:
+            requested:
+              type: integer
+              example: 2
+            scheduled:
+              type: integer
+              example: 1
+            active:
+              type: integer
+              example: 10
+            expired:
+              type: integer
+              example: 5
+            revoked:
+              type: integer
+              example: 1
+
   requestBodies:
+    Customer:
+      description: Customer to create.
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+                example: "John Doe"
+              email:
+                type: string
+                format: email
+                example: "doe@example.com"
+              externalId:
+                type: string
+                nullable: true
+                example: "123"
+            required:
+              - name
+              - email
+
+    UpdateCustomer:
+      description: Customer to update.
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+                example: "John Doe"
+              email:
+                type: string
+                format: email
+                example: "doe@example.com"
+              externalId:
+                type: string
+                nullable: true
+                example: "123"
+
     SubscriptionPlan:
       description: |
         Subscription plan to create or to patch.
@@ -827,6 +1033,11 @@ components:
                 example: "Basic"
               price:
                 $ref: "#/components/schemas/Money"
+              vatRate:
+                type: number
+                nullable: true
+                description: VAT rate in percentage points (e.g. 21 for 21%). Null means non-VAT payer.
+                example: 21
               duration:
                 type: integer
                 format: int32
@@ -862,6 +1073,11 @@ components:
                 example: "Basic"
               price:
                 $ref: "#/components/schemas/Money"
+              vatRate:
+                type: number
+                nullable: true
+                description: VAT rate in percentage points (e.g. 21 for 21%). Null means non-VAT payer.
+                example: 21
               duration:
                 type: integer
                 format: int32
@@ -895,9 +1111,9 @@ components:
         Without custom dates, omit `status` (defaults to `requested`). With custom dates and zero effective price,
         omit `status` (derived as `scheduled` or `active` from the dates).
 
-        Optional `price` allows setting a custom effective price. If omitted, the current price of the subscription
+        Optional `price` allows setting a custom effective price (excluding tax). If omitted, the current price of the subscription
         plan is used. Currency must match the plan. Amount must be zero or greater. On prolongation, the subscription
-        price is reset to the current plan price.
+        price is reset to the current plan price. VAT rate is always taken from the plan at create and on prolongation.
       required: true
       content:
         application/json:
